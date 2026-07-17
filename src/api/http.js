@@ -1,20 +1,39 @@
 import { mockUsuarios, mockMaterias, mockSesiones } from './mockData';
 
-// Helper to simulate network latency
+/**
+ * Helper para simular latencia de red.
+ * Devuelve una promesa que se resuelve tras el tiempo especificado.
+ * 
+ * @param {number} ms - Milisegundos de espera
+ * @returns {Promise<void>}
+ */
 const delay = (ms = 200) => new Promise(resolve => setTimeout(resolve, ms));
 
+/**
+ * Cliente HTTP simulado (Mock HTTP Client)
+ * 
+ * Reemplaza la instancia de Axios real para resolver todas las llamadas a endpoints 
+ * de la API localmente, leyendo y guardando datos en localStorage a través del módulo mockData.
+ */
 const http = {
-  // Mock interceptors to prevent errors in any external usage
+  // Mock de interceptores de Axios para evitar errores en llamadas heredadas o imports antiguos
   interceptors: {
     request: { use: () => {} },
     response: { use: () => {} }
   },
 
+  /**
+   * Simula peticiones GET para obtener listados o registros individuales.
+   * 
+   * @param {string} url - URL del endpoint
+   * @param {Object} config - Configuración de la petición (incluyendo query params en config.params)
+   * @returns {Promise<{data: *}>}
+   */
   async get(url, config = {}) {
     await delay();
     const params = config.params || {};
 
-    // 1. Usuarios
+    // --- Endpoints de Usuarios ---
     if (url === '/usuarios') {
       const data = mockUsuarios.getAll(params.search);
       return { data };
@@ -26,7 +45,7 @@ const http = {
       return { data };
     }
 
-    // 2. Materias
+    // --- Endpoints de Materias ---
     if (url === '/materias') {
       const data = mockMaterias.getAll(params.nombre, params.categoria);
       return { data };
@@ -38,7 +57,7 @@ const http = {
       return { data };
     }
 
-    // 3. Sesiones
+    // --- Endpoints de Sesiones ---
     if (url === '/sesiones') {
       const data = mockSesiones.getAll();
       return { data };
@@ -50,33 +69,39 @@ const http = {
       return { data };
     }
 
-    throw new Error(`Mock HTTP GET: Endpoint ${url} not found`);
+    throw new Error(`Mock HTTP GET: Endpoint ${url} no encontrado`);
   },
 
+  /**
+   * Simula peticiones POST para crear registros y autenticar usuarios.
+   * 
+   * @param {string} url - URL del endpoint
+   * @param {Object} body - Payload con los datos de creación o login
+   * @returns {Promise<{data: *}>}
+   */
   async post(url, body) {
     await delay();
 
-    // 1. Auth Login
+    // --- Autenticación: Login ---
     if (url === '/auth/login') {
       const list = mockUsuarios.getAll();
-      // Try to find matching user by email
       const user = list.find(u => u.correo.toLowerCase() === body.correo.toLowerCase());
       
       if (!user) {
         const error = new Error('El usuario no existe.');
-        error.response = { data: { message: 'El usuario con ese correo no está registrado.' } };
+        error.response = { data: { message: 'El correo electrónico no está registrado.' } };
         throw error;
       }
       
       if (user.contraseña !== body.contraseña) {
-        const error = new Error('Credenciales incorrectas.');
+        const error = new Error('Contraseña incorrecta.');
         error.response = { data: { message: 'La contraseña ingresada es incorrecta.' } };
         throw error;
       }
 
       if (user.estado === 'INACTIVO') {
         const error = new Error('Usuario inactivo.');
-        error.response = { data: { message: 'Esta cuenta está inactiva. Contacta al administrador.' } };
+        error.response = { data: { message: 'Tu cuenta de usuario está INACTIVA. Contacta al administrador.' } };
         throw error;
       }
 
@@ -88,7 +113,7 @@ const http = {
       };
     }
 
-    // 2. Auth Register
+    // --- Autenticación: Registro ---
     if (url === '/auth/register') {
       const list = mockUsuarios.getAll();
       const exists = list.some(u => u.correo.toLowerCase() === body.correo.toLowerCase());
@@ -114,35 +139,42 @@ const http = {
       };
     }
 
-    // 3. Usuarios CRUD
+    // --- Creación de Usuario ---
     if (url === '/usuarios') {
       const newUser = mockUsuarios.create(body);
       return { data: newUser };
     }
 
-    // 4. Materias CRUD
+    // --- Creación de Materia ---
     if (url === '/materias') {
       const newMateria = mockMaterias.create(body);
       return { data: newMateria };
     }
 
-    // 5. Sesiones CRUD
+    // --- Creación de Sesión ---
     if (url === '/sesiones') {
       const newSesion = mockSesiones.create(body);
       return { data: newSesion };
     }
 
-    throw new Error(`Mock HTTP POST: Endpoint ${url} not found`);
+    throw new Error(`Mock HTTP POST: Endpoint ${url} no encontrado`);
   },
 
+  /**
+   * Simula peticiones PUT para actualización de registros y activaciones de estado.
+   * 
+   * @param {string} url - URL del endpoint
+   * @param {Object} body - Payload con los datos a actualizar
+   * @returns {Promise<{data: *}>}
+   */
   async put(url, body) {
     await delay();
 
-    // 1. Usuarios
+    // --- Edición de Usuarios y Estados ---
     if (url.startsWith('/usuarios/')) {
       const parts = url.split('/');
       const id = Number(parts[2]);
-      const action = parts[3]; // 'activate' or 'deactivate' or undefined
+      const action = parts[3]; // 'activate' o 'deactivate'
 
       if (action === 'activate') {
         const updated = mockUsuarios.toggleStatus(id, true);
@@ -157,11 +189,11 @@ const http = {
       return { data: updated };
     }
 
-    // 2. Materias
+    // --- Edición de Materias y Estados ---
     if (url.startsWith('/materias/')) {
       const parts = url.split('/');
       const id = Number(parts[2]);
-      const action = parts[3]; // 'activate' or 'deactivate' or undefined
+      const action = parts[3]; // 'activate' o 'deactivate'
 
       if (action === 'activate') {
         const updated = mockMaterias.toggleStatus(id, true);
@@ -176,7 +208,7 @@ const http = {
       return { data: updated };
     }
 
-    // 3. Sesiones
+    // --- Edición de Sesiones ---
     if (url.startsWith('/sesiones/')) {
       const parts = url.split('/');
       const id = Number(parts[2]);
@@ -184,13 +216,19 @@ const http = {
       return { data: updated };
     }
 
-    throw new Error(`Mock HTTP PUT: Endpoint ${url} not found`);
+    throw new Error(`Mock HTTP PUT: Endpoint ${url} no encontrado`);
   },
 
+  /**
+   * Simula peticiones DELETE para remoción de registros de la base de datos local.
+   * 
+   * @param {string} url - URL del endpoint
+   * @returns {Promise<{data: {success: boolean}}>}
+   */
   async delete(url) {
     await delay();
 
-    // 1. Usuarios
+    // --- Borrar Usuario ---
     if (url.startsWith('/usuarios/')) {
       const parts = url.split('/');
       const id = Number(parts[2]);
@@ -198,7 +236,7 @@ const http = {
       return { data: { success: true } };
     }
 
-    // 2. Materias
+    // --- Borrar Materia ---
     if (url.startsWith('/materias/')) {
       const parts = url.split('/');
       const id = Number(parts[2]);
@@ -206,7 +244,7 @@ const http = {
       return { data: { success: true } };
     }
 
-    // 3. Sesiones
+    // --- Borrar Sesión ---
     if (url.startsWith('/sesiones/')) {
       const parts = url.split('/');
       const id = Number(parts[2]);
@@ -214,7 +252,7 @@ const http = {
       return { data: { success: true } };
     }
 
-    throw new Error(`Mock HTTP DELETE: Endpoint ${url} not found`);
+    throw new Error(`Mock HTTP DELETE: Endpoint ${url} no encontrado`);
   }
 };
 

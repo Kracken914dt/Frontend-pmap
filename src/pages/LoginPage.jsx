@@ -6,19 +6,32 @@ import http from '../api/http';
 import { setAuthSession } from '../utils/storage';
 import { Sparkles, User, Shield } from 'lucide-react';
 
+/**
+ * Componente LoginPage
+ * 
+ * Gestiona el inicio de sesión y registro de usuarios dentro de la aplicación.
+ * Utiliza react-hook-form para el control de formularios y SweetAlert2 para notificaciones.
+ */
 export default function LoginPage() {
   const navigate = useNavigate();
+  // Estado que determina si la vista actual es de registro (true) o inicio de sesión (false)
   const [isRegistering, setIsRegistering] = useState(false);
 
+  // Inicialización del formulario con react-hook-form
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm({
     defaultValues: { correo: '', contraseña: '' }
   });
 
-
+  /**
+   * Procesa la sumisión del formulario para Login y Registro.
+   * Envía los datos al cliente HTTP simulado (mock) y guarda la sesión en localStorage.
+   * 
+   * @param {Object} values - Valores de los campos del formulario
+   */
   async function onSubmit(values) {
     try {
       if (isRegistering) {
-        // Register flow
+        // --- FLUJO DE REGISTRO ---
         const { data } = await http.post('/auth/register', {
           ...values,
           rol: values.rol || 'ESTUDIANTE'
@@ -27,7 +40,7 @@ export default function LoginPage() {
         Swal.fire('¡Registro exitoso!', 'Tu cuenta ha sido creada y has iniciado sesión.', 'success');
         navigate('/');
       } else {
-        // Login flow
+        // --- FLUJO DE INICIO DE SESIÓN ---
         const { data } = await http.post('/auth/login', {
           correo: values.correo,
           contraseña: values.contraseña
@@ -38,6 +51,7 @@ export default function LoginPage() {
     } catch (error) {
       console.error('Error en autenticación', error);
       const title = isRegistering ? 'Error de registro' : 'Error de autenticación';
+      // Extrae el mensaje retornado por el mock HTTP o usa un fallback descriptivo
       const msg = error.response?.data?.message || (isRegistering 
         ? 'No se pudo completar el registro. Verifica los datos o si el correo ya existe.'
         : 'Credenciales incorrectas o el servidor backend no responde.');

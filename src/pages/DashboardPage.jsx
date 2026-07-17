@@ -3,17 +3,31 @@ import http from '../api/http';
 import { getAuthUser } from '../utils/storage';
 import { Users, BookOpen, CalendarRange, Sparkles, ShieldCheck } from 'lucide-react';
 
+/**
+ * Componente DashboardPage (Tablero Principal)
+ * 
+ * Muestra el resumen de estadísticas generales (total de usuarios, materias activas
+ * y sesiones de estudio programadas) consumidas del cliente HTTP mock.
+ */
 export default function DashboardPage() {
+  // Obtiene los datos del usuario autenticado (con fallback al admin "Diego Tique")
   const user = getAuthUser();
+  
+  // Estado para almacenar los contadores estadísticos del panel
   const [stats, setStats] = useState({ usuarios: 0, materias: 0, sesiones: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    /**
+     * Consulta las colecciones del mock de almacenamiento para calcular los contadores.
+     * Realiza múltiples peticiones paralelas simuladas a través de http.js.
+     */
     async function fetchStats() {
       let usuariosCount = 0;
       let materiasCount = 0;
       let sesionesCount = 0;
 
+      // Obtener contador de usuarios
       try {
         const res = await http.get('/usuarios');
         if (res.data && Array.isArray(res.data)) {
@@ -23,6 +37,7 @@ export default function DashboardPage() {
         console.error('Error al obtener usuarios para el tablero:', error);
       }
 
+      // Obtener contador de materias
       try {
         const res = await http.get('/materias');
         if (res.data && Array.isArray(res.data)) {
@@ -32,6 +47,7 @@ export default function DashboardPage() {
         console.error('Error al obtener materias para el tablero:', error);
       }
 
+      // Obtener contador de sesiones de estudio
       try {
         const res = await http.get('/sesiones');
         if (res.data && Array.isArray(res.data)) {
@@ -41,6 +57,7 @@ export default function DashboardPage() {
         console.error('Error al obtener sesiones para el tablero:', error);
       }
 
+      // Actualizar estado de estadísticas y finalizar indicador de carga
       setStats({
         usuarios: usuariosCount,
         materias: materiasCount,
@@ -48,6 +65,7 @@ export default function DashboardPage() {
       });
       setLoading(false);
     }
+    
     fetchStats();
   }, []);
 
